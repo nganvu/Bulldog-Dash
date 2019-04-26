@@ -45,12 +45,13 @@ uint16_t color;
 int MAX_OBSTACLE_INDEX;
 
 typedef struct gameState {
+  bool active;
   int bulldog_altitude;
   int bulldog_max_altitude;
   int bulldog_platform;
   bool bulldog_jumping;
   bool bulldog_jumping_over_gap;
-  bool jumping_direction;
+  bool bulldog_jumping_direction;
   int lives;
   int scores;
 } gameState;
@@ -119,7 +120,7 @@ const unsigned char DigitFont[] PROGMEM = {
 };
 
 const char obstacles[] PROGMEM =
-"______HELLO-WORLD______";
+"______HELLO-WORLD______HOW-ARE-YOU-TODAY______";
 int obstacle_index; // Current character at the bottom left corner.
 int obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 
@@ -162,11 +163,13 @@ void setup() {
 
   // Initialize a new game.
   my_game = (gameState*) malloc(sizeof(gameState));
+  my_game->active = true;
   my_game->bulldog_altitude = 0;
   my_game->bulldog_max_altitude = 10;
   my_game->bulldog_platform = GROUND;
   my_game->bulldog_jumping = false;
-  my_game->jumping_direction = UP;
+  my_game->bulldog_jumping_over_gap = false;
+  my_game->bulldog_jumping_direction = UP;
   my_game->lives = 4;
   my_game->scores = 0;
   
@@ -180,6 +183,7 @@ void setup() {
   displayObstacles();
   displayBulldog();
   displayLives();
+  displayHeart();
   displayScores();
 }
 
@@ -191,12 +195,22 @@ void loop() {
     // When the char 'A' is sent.
     if (read_val == 'A' && my_game->bulldog_jumping == false) {
       my_game->bulldog_jumping = true;
-      my_game->jumping_direction = UP;
+      my_game->bulldog_jumping_direction = UP;
     }
 
     unsigned char front_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_FRONT_LEG_OFFSET);
     unsigned char back_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_BACK_LEG_OFFSET);
     bool bulldog_on_char = (front_leg_char != '_' && front_leg_char != '-') && (back_leg_char != '_' && back_leg_char != '-');
+    bool bulldog_touching_char = (front_leg_char != '_' && front_leg_char != '-') || (back_leg_char != '_' && back_leg_char != '-');
+
+    if (my_game->active && bulldog_touching_char && (my_game->bulldog_platform + my_game->bulldog_altitude) < CHAR_HEIGHT) {
+      decreaseLives();
+      my_game->active = false;
+    }
+
+    if (!my_game->active && !bulldog_touching_char) {
+      my_game->active = true;
+    }
     
     // Bulldog is jumping.
     if (my_game->bulldog_jumping == true) {
@@ -206,7 +220,7 @@ void loop() {
       }
       
       // Bulldog is in the upward portion of the jump sequence.
-      if (my_game->jumping_direction == UP) {
+      if (my_game->bulldog_jumping_direction == UP) {
 
         // Clear the bottom row of the bulldog, which will no longer be within the bulldog frame.
         clearBulldogRow(my_game->bulldog_platform + my_game->bulldog_altitude);
@@ -214,7 +228,7 @@ void loop() {
         my_game->bulldog_altitude++;
         
         if (my_game->bulldog_altitude == my_game->bulldog_max_altitude) {
-          my_game->jumping_direction = DOWN;
+          my_game->bulldog_jumping_direction = DOWN;
         }
       }
       
@@ -234,7 +248,9 @@ void loop() {
             my_game->bulldog_platform = OBSTACLE_TOP;
             my_game->bulldog_altitude = 0;
             my_game->bulldog_max_altitude = 7;
-            increaseScores();
+            if (my_game->active) {
+              increaseScores();
+            }
           }
 
           // The bulldog jumped from ground and landed back on ground.
@@ -247,7 +263,7 @@ void loop() {
         else {
           if (my_game->bulldog_altitude == 0) {
             my_game->bulldog_jumping = false;
-            if (my_game->bulldog_jumping_over_gap) {
+            if (my_game->active && my_game->bulldog_jumping_over_gap) {
               increaseScores();
             }
             my_game->bulldog_jumping_over_gap = false;
@@ -262,7 +278,7 @@ void loop() {
       // If the bulldog is on an obstacle and reaches the end of that obstacle, it moves down to ground.
       if (my_game->bulldog_platform == OBSTACLE_TOP && !bulldog_on_char) {
         my_game->bulldog_jumping = true;
-        my_game->jumping_direction = DOWN;
+        my_game->bulldog_jumping_direction = DOWN;
         my_game->bulldog_platform = GROUND;
         my_game->bulldog_altitude = OBSTACLE_TOP;
         my_game->bulldog_max_altitude = 10;
@@ -270,10 +286,6 @@ void loop() {
         my_game->bulldog_altitude--;
       }
     }
-    
-    Serial.print(my_game->bulldog_platform);
-    Serial.print(my_game->bulldog_altitude);
-    Serial.println(my_game->bulldog_platform + my_game->bulldog_altitude);
     
     displayObstacles();
     displayBulldog();
@@ -286,6 +298,8 @@ void loop() {
       if (obstacle_index >= MAX_OBSTACLE_INDEX) {
         obstacle_index = 0;
         my_game->lives = 4;
+        clearLives();
+        displayLives();
       }
     }
     
@@ -364,9 +378,9 @@ void displayBulldog() {
           color = 0;
         }
       } else if (bulldog_pixel == 'W') {
-        color = WHITE;
+        color = my_game->active ? WHITE : RED;
       } else if (bulldog_pixel == 'B') {
-        color = BLUE;
+        color = my_game->active ? BLUE : WHITE;
       }
       matrix.drawPixel((SPRITE_HEIGHT - 1) - row + (my_game->bulldog_platform + my_game->bulldog_altitude), BULLDOG_LEFT_OFFSET + col, color);
     }
@@ -386,8 +400,6 @@ void clearBulldogRow(int row) {
 }
 
 void displayLives() {
-
-  // Draw number of lives.
   unsigned char current_column_bitmap;
   unsigned char current_bit;
   for (int col = 0; col < CHAR_WIDTH; col++) {
@@ -403,8 +415,9 @@ void displayLives() {
       matrix.drawPixel((matrix.height() - 1) - row, col, color);
     }
   }
+}
 
-  // Draw heart.
+void displayHeart() {
   unsigned char heart_pixel;
   for (int col = 0; col < SPRITE_WIDTH; col++) {
     for (int row = 0; row < SPRITE_HEIGHT; row++) {
@@ -417,6 +430,20 @@ void displayLives() {
       matrix.drawPixel((matrix.height() - 1) - row, CHAR_WIDTH + 1 + col, color);
     }
   }
+}
+
+void clearLives() {
+  for (int row = matrix.height() - CHAR_HEIGHT; row < matrix.height(); row++) {
+    for (int col = 0; col < CHAR_WIDTH; col++) {
+      matrix.drawPixel(row, col, 0);
+    }
+  }
+}
+
+void decreaseLives() {
+  my_game->lives--;
+  clearLives();
+  displayLives();
 }
 
 void displayScores() {
