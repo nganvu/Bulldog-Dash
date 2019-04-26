@@ -34,17 +34,14 @@ RGBmatrixPanel matrix(A, B, C, D, CLK, LAT, OE, false);
 uint16_t color;
 #define WHITE (matrix.Color333(7, 7, 7))
 #define RED (matrix.Color333(7, 0, 0))
+#define GREEN (matrix.Color333(0, 7, 0))
 #define BLUE (matrix.Color333(0, 0, 7))
 #define PURPLE (matrix.Color333(7, 0, 7))
 
-#define DISP_SIZE (32)
 #define BULLDOG_LEFT_OFFSET (3)
 #define BULLDOG_FRONT_LEG_OFFSET (4)
 #define BULLDOG_BACK_LEG_OFFSET (2)
 #define BULLDOG_TOP_OFFSET (26)
-#define JUMP_SEQUENCE_LENGTH (19)
-#define LAND_ON_OBSTACLE_CHECK (11)
-#define MAX_OBSTACLE_CYCLE (6)
 int MAX_OBSTACLE_INDEX;
 
 typedef struct gameState {
@@ -170,7 +167,7 @@ void setup() {
   my_game->bulldog_jumping = false;
   my_game->jumping_direction = UP;
   my_game->lives = 4;
-  my_game->scores = 0;
+  my_game->scores = 36;
   
   obstacle_index = 0;
   obstacle_cycle = 0;
@@ -181,6 +178,8 @@ void setup() {
   matrix.fillScreen(0); // Clear the LED board.
   displayObstacles();
   displayBulldog();
+  displayLives();
+  displayScores();
 }
 
 void loop() {
@@ -246,9 +245,9 @@ void loop() {
     
     displayObstacles();
     displayBulldog();
-    displayLives();
+    
     obstacle_cycle++;
-    if (obstacle_cycle >= MAX_OBSTACLE_CYCLE) {
+    if (obstacle_cycle >= CHAR_WIDTH + 1) {
       obstacle_cycle = 0;
       obstacle_index++;
       // For now, restart the game when out of characters.
@@ -384,6 +383,51 @@ void displayLives() {
         color = RED;
       }
       matrix.drawPixel((matrix.height() - 1) - row, CHAR_WIDTH + 1 + col, color);
+    }
+  }
+}
+
+void displayScores() {
+  unsigned char current_column_bitmap;
+  unsigned char current_bit;
+  
+  // Draw first digit.
+  int first_digit = (int) my_game->scores / 10;
+  if (first_digit != 0) {
+    for (int col = 0; col < CHAR_WIDTH; col++) {
+      current_column_bitmap = (unsigned char) pgm_read_byte(&(DigitFont[(first_digit * 5) + col]));
+      for (int row = 0; row < CHAR_HEIGHT; row++) {
+        current_bit = current_column_bitmap & 0x1;
+        current_column_bitmap >>= 1;
+        if (current_bit == 0x1) {
+          color = GREEN;
+        } else {
+          color = 0;
+        }
+        // Draw top to bottom, left to right.
+        // Top row of first digit is on the top edge of display.
+        // Left column of first digit is 2 chars and 1 space away from right edge of display.
+        matrix.drawPixel((matrix.height() - 1) - row, matrix.width() - (CHAR_WIDTH + 1 + CHAR_WIDTH) + col, color);
+      }
+    }
+  }
+
+  // Draw second digit.
+  int second_digit = my_game->scores % 10;
+  for (int col = 0; col < CHAR_WIDTH; col++) {
+    current_column_bitmap = (unsigned char) pgm_read_byte(&(DigitFont[(second_digit * 5) + col]));
+    for (int row = 0; row < CHAR_HEIGHT; row++) {
+      current_bit = current_column_bitmap & 0x1;
+      current_column_bitmap >>= 1;
+      if (current_bit == 0x1) {
+        color = GREEN;
+      } else {
+        color = 0;
+      }
+      // Draw top to bottom, left to right.
+      // Top row of second digit is on the top edge of display.
+      // Left column of second digit is 1 char away from right edge of display.
+      matrix.drawPixel((matrix.height() - 1) - row, matrix.width() - CHAR_WIDTH + col, color);
     }
   }
 }
