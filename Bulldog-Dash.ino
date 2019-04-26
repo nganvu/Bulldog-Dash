@@ -49,6 +49,7 @@ typedef struct gameState {
   int bulldog_max_altitude;
   int bulldog_platform;
   bool bulldog_jumping;
+  bool bulldog_jumping_over_gap;
   bool jumping_direction;
   int lives;
   int scores;
@@ -118,7 +119,7 @@ const unsigned char DigitFont[] PROGMEM = {
 };
 
 const char obstacles[] PROGMEM =
-"______HELLO_WORLD______";
+"______HELLO-WORLD______";
 int obstacle_index; // Current character at the bottom left corner.
 int obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 
@@ -167,7 +168,7 @@ void setup() {
   my_game->bulldog_jumping = false;
   my_game->jumping_direction = UP;
   my_game->lives = 4;
-  my_game->scores = 36;
+  my_game->scores = 0;
   
   obstacle_index = 0;
   obstacle_cycle = 0;
@@ -195,32 +196,61 @@ void loop() {
 
     unsigned char front_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_FRONT_LEG_OFFSET);
     unsigned char back_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_BACK_LEG_OFFSET);
-    bool bulldog_on_char = (front_leg_char != '_') && (back_leg_char != '_');
-
+    bool bulldog_on_char = (front_leg_char != '_' && front_leg_char != '-') && (back_leg_char != '_' && back_leg_char != '-');
+    
     // Bulldog is jumping.
     if (my_game->bulldog_jumping == true) {
+
+      if (front_leg_char == '-' || back_leg_char == '-') {
+        my_game->bulldog_jumping_over_gap = true;
+      }
+      
+      // Bulldog is in the upward portion of the jump sequence.
       if (my_game->jumping_direction == UP) {
+
+        // Clear the bottom row of the bulldog, which will no longer be within the bulldog frame.
         clearBulldogRow(my_game->bulldog_platform + my_game->bulldog_altitude);
+        
         my_game->bulldog_altitude++;
+        
         if (my_game->bulldog_altitude == my_game->bulldog_max_altitude) {
           my_game->jumping_direction = DOWN;
         }
-      } else {
+      }
+      
+      // Bulldog is in the downward portion of the jump sequence.
+      else {
+
+        // Clear the top row of the bulldog, which will no longer be within the bulldog frame.
         clearBulldogRow(my_game->bulldog_platform + my_game->bulldog_altitude + (SPRITE_HEIGHT - 1));
+        
         my_game->bulldog_altitude--;
+
         if (my_game->bulldog_platform == GROUND) {
+          
+          // The bulldog jumped from ground and landed on an obstacle. Score is incremented.
           if (my_game->bulldog_altitude == OBSTACLE_TOP && bulldog_on_char) {
             my_game->bulldog_jumping = false;
             my_game->bulldog_platform = OBSTACLE_TOP;
             my_game->bulldog_altitude = 0;
             my_game->bulldog_max_altitude = 7;
-          } else if (my_game->bulldog_altitude == 0) {
+            increaseScores();
+          }
+
+          // The bulldog jumped from ground and landed back on ground.
+          else if (my_game->bulldog_altitude == 0) {
             my_game->bulldog_jumping = false;
           }
         }
-        else if (my_game->bulldog_platform == OBSTACLE_TOP) {
+
+        // The bulldog jumped from obstacle top and landed back on an obstacle.
+        else {
           if (my_game->bulldog_altitude == 0) {
             my_game->bulldog_jumping = false;
+            if (my_game->bulldog_jumping_over_gap) {
+              increaseScores();
+            }
+            my_game->bulldog_jumping_over_gap = false;
           }
         }
       }
@@ -228,6 +258,8 @@ void loop() {
 
     // Bulldog is not jumping.
     else {
+
+      // If the bulldog is on an obstacle and reaches the end of that obstacle, it moves down to ground.
       if (my_game->bulldog_platform == OBSTACLE_TOP && !bulldog_on_char) {
         my_game->bulldog_jumping = true;
         my_game->jumping_direction = DOWN;
@@ -279,7 +311,7 @@ void displayObstacles() {
   for (int col = 0; col < 32; col++) {
     current_char =  getCharOfColumn(col);
     current_char_column = getCharColumnOfColumn(col);
-    if (current_char == '_' || current_char_column == 5) {
+    if (current_char == '_' || current_char == '-' || current_char_column == 5) {
       current_column_bitmap = 0;
     } else {
       current_column_bitmap = (unsigned char) pgm_read_byte(&(LetterFont[((current_char - 'A') * 5) + current_char_column]));
@@ -311,7 +343,7 @@ void displayBulldog() {
   for (int col = 0; col < SPRITE_WIDTH; col++) {
     current_char =  getCharOfColumn(BULLDOG_LEFT_OFFSET + col);
     current_char_column = getCharColumnOfColumn(BULLDOG_LEFT_OFFSET + col);
-    if (current_char == '_' || current_char_column == 5) {
+    if (current_char == '_' || current_char == '-' || current_char_column == 5) {
       current_column_bitmap = 0;
     } else {
       current_column_bitmap = (unsigned char) pgm_read_byte(&(LetterFont[((current_char - 'A') * 5) + current_char_column]));
@@ -430,4 +462,18 @@ void displayScores() {
       matrix.drawPixel((matrix.height() - 1) - row, matrix.width() - CHAR_WIDTH + col, color);
     }
   }
+}
+
+void clearScores() {
+  for (int row = matrix.height() - CHAR_HEIGHT; row < matrix.height(); row++) {
+    for (int col = matrix.width() - (CHAR_WIDTH + 1 + CHAR_WIDTH); col < matrix.width(); col++) {
+      matrix.drawPixel(row, col, 0);  
+    }
+  }
+}
+
+void increaseScores() {
+  my_game->scores++;
+  clearScores();
+  displayScores();
 }
