@@ -52,6 +52,8 @@ uint16_t color;
 #define BULLDOG_BACK_LEG_OFFSET (2)
 #define BULLDOG_TOP_OFFSET (26)
 
+#define CREDITS 4 //(36)
+
 typedef struct gameState {
   bool active;
   int lives;
@@ -155,9 +157,13 @@ char obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles 
 // must be less than 254 chars long, may need to change to int
 char MAX_OBSTACLE_INDEX;
 
+#define STATIC_INDEX 0
+#define STATIC_CYCLE 0
+
 const char welcome[] PROGMEM = "BOOLA__";
-char welcome_index; // less than 255
-char welcome_cycle; // less than 255
+//char welcome_index = 0; // less than 255
+//char welcome_cycle = 0; // less than 255
+// currently not being reset
 //const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
 //const char welcome[] PROGMEM = "YALE__";
 
@@ -166,6 +172,13 @@ char welcome_cycle; // less than 255
 //char inst_cycle; // less than 255
 //// tested with strlen in another sketch but idk what the - 6 is for
 //#define MAX_INST_INDEX (27)
+
+//const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
+//char inst_index; // less than 255
+//char inst_cycle; // less than 255
+
+const char congrats[] PROGMEM = "_PASS__";
+const char dropout[] PROGMEM = "_FAIL__";
 
 unsigned long previous_millis;
 unsigned long current_millis;
@@ -224,6 +237,23 @@ void setup() {
 
   // Initialize a new game.
   my_game = (gameState*) malloc(sizeof(gameState));
+  restartGame();
+  
+  MAX_OBSTACLE_INDEX = strlen_P(obstacles) - 6;
+
+  previous_millis = millis();
+
+  matrix.fillScreen(0); // Clear the LED board.
+  
+  displayStartScreen();
+
+//  color = YALE_PURPLE;
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
+//  displayStartMessage();
+ 
+}
+
+void restartGame() {
   my_game->active = true;
   my_game->lives = 4;
   my_game->scores = 0;
@@ -238,21 +268,6 @@ void setup() {
 
   obstacle_index = 0;
   obstacle_cycle = 0;
-  MAX_OBSTACLE_INDEX = strlen_P(obstacles) - 6;
-
-  previous_millis = millis();
-
-  matrix.fillScreen(0); // Clear the LED board.
-  
-  displayBigBulldog();
-  color = BLUE;
-  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
-  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
-
-//  color = YALE_PURPLE;
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
-//  displayStartScreen();
- 
 }
 
 void loop() {
@@ -281,14 +296,14 @@ void loop() {
         delay_millis = GAME_MILLIS;
       }
 //      else {
-//        displayStartScreen();
+//        displayStartMessage();
 //        updateInstCycle();
 //        //  used to have welcome message scroll too
 //      }
     }
  
     else{
-
+      
       if (my_game->time_step == 0) {
         displayYear();
       } else if (my_game->time_step == 10) {
@@ -390,10 +405,13 @@ void loop() {
           my_game->bulldog_altitude--;
         }
       }
-  
-      displayObstacles();
-      displayBulldog();
-  
+
+      // game might have ended since last check
+      if(game_running){
+        displayObstacles();
+        displayBulldog();
+      }
+        
       obstacle_cycle++;
       if (obstacle_cycle >= CHAR_WIDTH + 1) {
         obstacle_cycle = 0;
@@ -549,8 +567,14 @@ void clearLives() {
 
 void decreaseLives() {
   my_game->lives--;
-  clearLives();
-  displayLives();
+
+  if(my_game->lives <= 0) {
+     endGame(false); 
+  }
+  else {
+     clearLives();
+     displayLives();
+  }
 }
 
 void displayScores() {
@@ -610,6 +634,10 @@ void increaseScores() {
   my_game->scores++;
   clearScores();
   displayScores();
+
+  if(my_game->scores == CREDITS) {
+    endGame(true);
+  }
 }
 
 void displayYear() {
@@ -677,6 +705,21 @@ void clearYear() {
 //  }
 //}
 
+// display start screen
+//void displayStartMessage() {
+//  color = BLUE;
+//  displayLineOfText(instruction, inst_index, inst_cycle, 0, 0);
+//}
+
+void displayStartScreen() {
+  displayBigBulldog();
+  color = BLUE;
+  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 0);
+  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, 0, 3);
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
+}
+
 // message must be string in PROGMEM
 unsigned char getCharOfColumnGeneral(int column, const char *message, int index, int cycle) {
   return (unsigned char) pgm_read_byte(&(message[index + (int) ((column + cycle) / 6)]));
@@ -733,8 +776,33 @@ void displayBigBulldog() {
   }
 }
 
-// display start screen
-//void displayStartScreen() {
-//  color = BLUE;
-//  displayLineOfText(instruction, inst_index, inst_cycle, 0, 0);
-//}
+void endGame(bool win) {
+  game_running = false;
+  delay_millis = START_MILLIS; // make messages scroll faster
+  matrix.fillScreen(0);
+  if(win)
+    displayWinScreen();
+  else
+    displayLoseScreen();
+  // use millis? this is blocking
+  delay(3000);
+  restartGame();
+  matrix.fillScreen(0);
+  displayStartScreen();
+  
+}
+
+void displayWinScreen() {
+  color = LIGHT_BLUE;
+  displayLineOfText(congrats, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), 0);
+}
+
+void displayLoseScreen() {
+  color = RED;
+  displayLineOfText(dropout, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), 0);
+}
+
+//        // debugging
+//        color = LIGHT_BLUE;
+//        displayLineOfText(congrats, STATIC_INDEX, STATIC_CYCLE, 0, 0);
+        
