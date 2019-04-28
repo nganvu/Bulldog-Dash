@@ -52,9 +52,6 @@ uint16_t color;
 #define BULLDOG_BACK_LEG_OFFSET (2)
 #define BULLDOG_TOP_OFFSET (26)
 
-// must be less than 254 chars long, may need to change to int
-char MAX_OBSTACLE_INDEX;
-
 typedef struct gameState {
   bool active;
   int lives;
@@ -149,10 +146,14 @@ const unsigned char DigitFont[] PROGMEM = {
   0x06, 0x49, 0x49, 0x29, 0x1E,// 9
 };
 
+//const char obstacles[] PROGMEM =
+//  "______HELLO-WORLD______";
 const char obstacles[] PROGMEM =
-  "______HELLO-WORLD______";
+  "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
 int obstacle_index; // Current character at the bottom left corner.
 char obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
+// must be less than 254 chars long, may need to change to int
+char MAX_OBSTACLE_INDEX;
 
 const char welcome[] PROGMEM = "BOOLA__";
 char welcome_index; // less than 255
