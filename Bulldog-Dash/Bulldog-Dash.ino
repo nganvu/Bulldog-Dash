@@ -43,6 +43,7 @@ uint16_t color;
 #define LIGHT_BLUE (matrix.Color333(2, 2, 7))
 #define YELLOW (matrix.Color333(7, 3, 0))
 #define PURPLE (matrix.Color333(7, 0, 7))
+#define YALE_PURPLE (matrix.Color333(3, 0, 7))
 
 #define BULLDOG_LEFT_OFFSET (3)
 #define BULLDOG_FRONT_LEG_OFFSET (4)
@@ -151,7 +152,8 @@ int obstacle_index; // Current character at the bottom left corner.
 int obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 
 //const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
-const char welcome[] PROGMEM = "BOOLA__";
+const char welcome[] PROGMEM = "YALE__";
+// const char welcome[] PROGMEM = "BOOLA__";
 char welcome_index; // less than 255
 char welcome_cycle; // less than 255
 // tested with strlen in another sketch
@@ -225,13 +227,14 @@ void setup() {
   previous_millis = millis();
 
   matrix.fillScreen(0); // Clear the LED board.
-//  displayStartScreen();
+  
+  color = YALE_PURPLE;
+  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
+  displayStartScreen();
   displayBigBulldog();
-//  color = PURPLE;
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 1);
-  color = BLUE;
-  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
-  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
+//  color = BLUE;
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
  
 }
 
@@ -255,11 +258,11 @@ void loop() {
 
         delay_millis = GAME_MILLIS;
       }
-//      else {
-//        displayStartScreen();
-//        updateInstCycle();
-//        //updateWelcomeCycle();
-//      }
+      else {
+        displayStartScreen();
+        updateInstCycle();
+        //  used to have welcome message scroll too
+      }
     }
  
     else{
