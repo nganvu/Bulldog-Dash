@@ -151,22 +151,17 @@ const char obstacles[] PROGMEM =
 int obstacle_index; // Current character at the bottom left corner.
 int obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 
-//const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
-const char welcome[] PROGMEM = "YALE__";
-// const char welcome[] PROGMEM = "BOOLA__";
+const char welcome[] PROGMEM = "BOOLA__";
 char welcome_index; // less than 255
 char welcome_cycle; // less than 255
-// tested with strlen in another sketch
-#define MAX_WELCOME_INDEX (24)
-//char MAX_WELCOME_INDEX; // less than 255
-
+//const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
+//const char welcome[] PROGMEM = "YALE__";
 
 const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
 char inst_index; // less than 255
 char inst_cycle; // less than 255
 // tested with strlen in another sketch but idk what the - 6 is for
 #define MAX_INST_INDEX (27)
-// char MAX_INST_INDEX; // less than 255
 
 unsigned long previous_millis;
 unsigned long current_millis;
@@ -228,13 +223,14 @@ void setup() {
 
   matrix.fillScreen(0); // Clear the LED board.
   
-  color = YALE_PURPLE;
-  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
-  displayStartScreen();
   displayBigBulldog();
-//  color = BLUE;
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
+  color = BLUE;
+  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
+  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
+
+//  color = YALE_PURPLE;
+//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
+//  displayStartScreen();
  
 }
 
@@ -258,11 +254,11 @@ void loop() {
 
         delay_millis = GAME_MILLIS;
       }
-      else {
-        displayStartScreen();
-        updateInstCycle();
-        //  used to have welcome message scroll too
-      }
+//      else {
+//        displayStartScreen();
+//        updateInstCycle();
+//        //  used to have welcome message scroll too
+//      }
     }
  
     else{
