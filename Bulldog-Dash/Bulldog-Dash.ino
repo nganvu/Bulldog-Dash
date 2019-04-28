@@ -13,6 +13,8 @@
 #define C   A2
 #define D   A3
 
+#define BUTTON_PIN 13
+
 // Timings for scrolling text
 #define GAME_MILLIS 150
 #define START_MILLIS 75
@@ -50,7 +52,8 @@ uint16_t color;
 #define BULLDOG_BACK_LEG_OFFSET (2)
 #define BULLDOG_TOP_OFFSET (26)
 
-int MAX_OBSTACLE_INDEX;
+// must be less than 254 chars long, may need to change to int
+char MAX_OBSTACLE_INDEX;
 
 typedef struct gameState {
   bool active;
@@ -149,7 +152,7 @@ const unsigned char DigitFont[] PROGMEM = {
 const char obstacles[] PROGMEM =
   "______HELLO-WORLD______";
 int obstacle_index; // Current character at the bottom left corner.
-int obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
+char obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 
 const char welcome[] PROGMEM = "BOOLA__";
 char welcome_index; // less than 255
@@ -157,11 +160,11 @@ char welcome_cycle; // less than 255
 //const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
 //const char welcome[] PROGMEM = "YALE__";
 
-const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
-char inst_index; // less than 255
-char inst_cycle; // less than 255
-// tested with strlen in another sketch but idk what the - 6 is for
-#define MAX_INST_INDEX (27)
+//const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
+//char inst_index; // less than 255
+//char inst_cycle; // less than 255
+//// tested with strlen in another sketch but idk what the - 6 is for
+//#define MAX_INST_INDEX (27)
 
 unsigned long previous_millis;
 unsigned long current_millis;
@@ -170,6 +173,14 @@ unsigned long delay_millis = START_MILLIS;
 gameState* my_game;
 int cur_jumping_idx = 0;
 bool game_running = false;
+
+#define BUTTON_DOWN 0
+#define BUTTON_UP 1
+#define DEBOUNCE 100 
+
+bool buttonPushed = false;
+unsigned char newState, prevState;
+unsigned long lastSwitchTime; 
 
 /* This function places the current value of the heap and stack pointers in the
    variables. You can call it from any place in your code and save the data for
@@ -180,26 +191,35 @@ bool game_running = false;
    be larger than HP or you'll be in big trouble! The smaller the gap, the more
    careful you need to be. Julian Gall 6-Feb-2009.
 */
-int * heapptr, * stackptr;
-void check_mem() {
-  stackptr = (int *)malloc(4);          // use stackptr temporarily
-  heapptr = stackptr;                     // save value of heap pointer
-  free(stackptr);      // free up the memory again (sets stackptr to 0)
-  stackptr =  (int *)(SP);           // save value of stack pointer
-
-  Serial.print(F("SP: ")); Serial.print((unsigned int) stackptr); Serial.print(F(" > HP: "));
-  Serial.println((unsigned int) heapptr);
-}
+//int * heapptr, * stackptr;
+//void check_mem() {
+//  stackptr = (int *)malloc(4);          // use stackptr temporarily
+//  heapptr = stackptr;                     // save value of heap pointer
+//  free(stackptr);      // free up the memory again (sets stackptr to 0)
+//  stackptr =  (int *)(SP);           // save value of stack pointer
+//
+//  Serial.print(F("SP: ")); Serial.print((unsigned int) stackptr); Serial.print(F(" > HP: "));
+//  Serial.println((unsigned int) heapptr);
+//}
 
 void setup() {
 
   // For Serial Monitor.
-  Serial.begin(9600);
+  //Serial.begin(9600);
+
+  // For button.
+  PORTB |= (1 << PB7); // passive pull-up
+  pinMode(BUTTON_PIN, INPUT); 
+
+   // Initial state of button.
+  newState = digitalRead(BUTTON_PIN); //PINB & (1 << PB7);
+  // For debouncing.
+  lastSwitchTime = 0;
 
   // For LED Matrix.
   matrix.begin();
 
-  check_mem();
+  //check_mem();
 
   // Initialize a new game.
   my_game = (gameState*) malloc(sizeof(gameState));
@@ -236,14 +256,19 @@ void setup() {
 
 void loop() {
   unsigned long current_millis = millis();
+  
+  prevState = newState;
+  newState = digitalRead(BUTTON_PIN); //PINB & (1 << PB7);
+  // watch out for holding down?
+  if ((current_millis - DEBOUNCE*2) > lastSwitchTime && newState == BUTTON_DOWN){
+    buttonPushed = true;// !buttonState;
+    lastSwitchTime = current_millis;
+  }
+  
   if (current_millis - previous_millis >= delay_millis) {
-
     if(!game_running) {
-      int read_val = Serial.read();
-    
-      // When the char 'A' is sent.
-      // Change to be button
-      if (read_val == 'A') {
+      if (buttonPushed) {
+        buttonPushed = false;
         game_running = true;
         matrix.fillScreen(0);
         displayLives();
@@ -269,13 +294,12 @@ void loop() {
         clearYear();
       }
   
-      int read_val = Serial.read();
-  
-      // When the char 'A' is sent.
-      if (read_val == 'A' && my_game->bulldog_jumping == false) {
+      if (buttonPushed && my_game->bulldog_jumping == false) {
+        buttonPushed = false;
         my_game->bulldog_jumping = true;
         my_game->bulldog_jumping_direction = UP;
       }
+      else if (buttonPushed) buttonPushed = false; // reset for next detection
   
       unsigned char front_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_FRONT_LEG_OFFSET);
       unsigned char back_leg_char = getCharOfColumn(BULLDOG_LEFT_OFFSET + BULLDOG_BACK_LEG_OFFSET);
@@ -385,6 +409,7 @@ void loop() {
       }
       my_game->time_step++;
     }
+    
     previous_millis = current_millis;
   }
 }
@@ -426,7 +451,6 @@ void displayObstacles() {
     }
   }
 }
-
 
 
 // Display the bulldog, as well as anything that is within the square containing the bulldog.
@@ -640,17 +664,17 @@ void clearYear() {
   }
 }
 
-void updateInstCycle(){
-  inst_cycle++;
-  if (inst_cycle >= CHAR_WIDTH + 1) {
-    inst_cycle = 0;
-    inst_index++;
-    // keep looping
-    if (inst_index >= MAX_INST_INDEX) {
-      inst_index = 0;
-    }
-  }
-}
+//void updateInstCycle(){
+//  inst_cycle++;
+//  if (inst_cycle >= CHAR_WIDTH + 1) {
+//    inst_cycle = 0;
+//    inst_index++;
+//    // keep looping
+//    if (inst_index >= MAX_INST_INDEX) {
+//      inst_index = 0;
+//    }
+//  }
+//}
 
 // message must be string in PROGMEM
 unsigned char getCharOfColumnGeneral(int column, const char *message, int index, int cycle) {
@@ -667,7 +691,7 @@ void displayLineOfText(const char *message, int index, int cycle, int row_offset
   int current_char_column;
   unsigned char current_column_bitmap;
   unsigned char current_bit;
-  check_mem();
+//  check_mem();
   for (int col = 0; col < 32; col++) {
     current_char =  getCharOfColumnGeneral(col, message, index, cycle);
     current_char_column = getCharColumnOfColumnGeneral(col, cycle);
@@ -709,7 +733,7 @@ void displayBigBulldog() {
 }
 
 // display start screen
-void displayStartScreen() {
-  color = BLUE;
-  displayLineOfText(instruction, inst_index, inst_cycle, 0, 0);
-}
+//void displayStartScreen() {
+//  color = BLUE;
+//  displayLineOfText(instruction, inst_index, inst_cycle, 0, 0);
+//}
