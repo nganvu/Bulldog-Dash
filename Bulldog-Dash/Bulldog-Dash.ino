@@ -45,15 +45,18 @@ uint16_t color;
 #define BLUE (matrix.Color333(0, 0, 7))
 #define LIGHT_BLUE (matrix.Color333(2, 2, 7))
 #define YELLOW (matrix.Color333(7, 3, 0))
+#define ORANGE (matrix.Color333(7, 1, 0))
 #define PURPLE (matrix.Color333(7, 0, 7))
-#define YALE_PURPLE (matrix.Color333(3, 0, 7))
+#define PINK (matrix.Color333(7, 0, 3))
+#define DARK_PURPLE (matrix.Color333(3, 0, 7))
 
 #define BULLDOG_LEFT_OFFSET (3)
 #define BULLDOG_FRONT_LEG_OFFSET (4)
 #define BULLDOG_BACK_LEG_OFFSET (2)
 #define BULLDOG_TOP_OFFSET (26)
 
-#define CREDITS 4 //(36)
+#define POINTS_PER_OBSTACLE 2
+#define CREDITS 36
 
 typedef struct gameState {
   bool active;
@@ -81,7 +84,7 @@ const char bulldog[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
   "__W_W__"
 };
 
-// 56 bytes
+//// 56 bytes
 const char heart[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
   "_RR_RR_",
   "RRRRRRR",
@@ -110,20 +113,20 @@ const char big_bulldog[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
   "__WW___WW_____"
 };
 
-// 165 bytes
-const char grad_decal[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
-  "P______P_____P",
-  "_B_____P____B_",
-  "__B____B___B__",
-  "___BP___PPB___",
-  "___PBBPBPBP__W",
-  "PW__BPPBBBP___",
-  "___WBWBPPP___",
-  "___BWPPB_PB___",
-  "__B________B__",
-  "_B____B_____B_",
-  "P_____B______P"
-};
+//// 165 bytes
+//const char grad_decal[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
+//  "P______P_____P",
+//  "_B_____P____B_",
+//  "__B____B___B__",
+//  "___BP___PPB___",
+//  "___PBBPBPBP__W",
+//  "PW__BPPBBBP___",
+//  "___WBWBPPP___",
+//  "___BWPPB_PB___",
+//  "__B________B__",
+//  "_B____B_____B_",
+//  "P_____B______P"
+//};
 
 // 130 bytes
 const unsigned char LetterFont[] PROGMEM = {
@@ -169,11 +172,16 @@ const unsigned char DigitFont[] PROGMEM = {
   0x06, 0x49, 0x49, 0x29, 0x1E,// 9
 };
 
-//const char obstacles[] PROGMEM =
-//  "______HELLO-WORLD______";
-// 55 bytes
-const char obstacles[] PROGMEM =
-  "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
+
+// 210 bytes
+const char freshman[] PROGMEM  = "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW______";
+const char sophomore[] PROGMEM = "______PAPER_____PAPER____SLUMP____PAPER______";
+const char junior[] PROGMEM    = "______CPSC323_____INTERNSHIP____SPRING-FLING____FINALS______";
+const char senior[] PROGMEM    = "______INTERVIEWS_____FEBCLUB____EXISTENTIAL-DREAD____THESIS______";
+// const char * obstacles[] = {freshman, sophomore, junior, senior};
+//const char * obstacles[] = {freshman, sophomore}; //works with freshman but not both
+
+// reuse these since one set of obstacles at a time
 int obstacle_index; // Current character at the bottom left corner.
 char obstacle_cycle; // Each character takes up 5 columns, so it takes 5 cycles to move 1 character over.
 // must be less than 254 chars long, may need to change to int
@@ -262,16 +270,18 @@ void setup() {
   // Initialize a new game.
   my_game = (gameState*) malloc(sizeof(gameState));
   restartGame();
-  
-  MAX_OBSTACLE_INDEX = strlen_P(obstacles) - 6;
+
+//  for(int i = 0; i < 2; i++)
+//    MAX_OBSTACLE_INDEX[i] = strlen_P(obstacles[i]) - 6;
+  MAX_OBSTACLE_INDEX = strlen_P(freshman) - 6;
 
   previous_millis = millis();
 
   matrix.fillScreen(0); // Clear the LED board.
   displayStartScreen();
 
-//  color = YALE_PURPLE;
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
+//  color = ORANGE;
+//  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 4, false);
 //  displayStartMessage();
  
 }
@@ -444,11 +454,24 @@ void loop() {
         obstacle_cycle = 0;
         obstacle_index++;
         // For now, restart the game when out of characters.
-        if (obstacle_index >= MAX_OBSTACLE_INDEX) {
+        if (obstacle_index >= MAX_OBSTACLE_INDEX) { //my_game->year - 1
           obstacle_index = 0;
-          my_game->lives = 4;
+//          my_game->lives = 4;
           my_game->time_step = -1;
           my_game->year++;
+
+          delay_millis -= 30;
+
+          if(my_game->year == 2){
+            MAX_OBSTACLE_INDEX = strlen_P(sophomore) - 6;
+          } else if(my_game->year == 3){
+            MAX_OBSTACLE_INDEX = strlen_P(junior) - 6;
+          } else if(my_game->year == 4){
+            MAX_OBSTACLE_INDEX = strlen_P(senior) - 6;
+          } else if(my_game->year >= 5){
+            endGame(false); // maybe alternate ending?
+          }
+          
           clearLives();
           displayLives();
         }
@@ -461,8 +484,18 @@ void loop() {
 }
 
 unsigned char getCharOfColumn(int column) {
-  return (unsigned char) pgm_read_byte(&(obstacles[obstacle_index + (int) ((column + obstacle_cycle) / 6)]));
+  const char *obstacle;
+  if(my_game->year == 1) obstacle = freshman;
+  else if(my_game->year == 2) obstacle = sophomore;
+  else if(my_game->year == 3) obstacle = junior;
+  else if(my_game->year == 4) obstacle = senior;
+  
+  return (unsigned char) pgm_read_byte(&(obstacle[obstacle_index + (int) ((column + obstacle_cycle) / 6)]));
 }
+
+//unsigned char getCharOfColumn(int column) {
+//  return (unsigned char) pgm_read_byte(&(obstacles[my_game->year -1][obstacle_index + (int) ((column + obstacle_cycle) / 6)]));
+//}
 
 unsigned char getCharColumnOfColumn(int column) {
   return (column + obstacle_cycle) % 6;
@@ -474,12 +507,18 @@ void displayObstacles() {
   int current_char_column;
   unsigned char current_column_bitmap;
   unsigned char current_bit;
-  color = PURPLE;
+  if(my_game->year == 1) color = YELLOW;
+  else if(my_game->year == 2) color = ORANGE;
+  else if(my_game->year == 3) color = PINK;
+  else if(my_game->year == 4) color = DARK_PURPLE;
+  
   for (int col = 0; col < 32; col++) {
     current_char =  getCharOfColumn(col);
     current_char_column = getCharColumnOfColumn(col);
     if (current_char == '_' || current_char == '-' || current_char_column == 5) {
       current_column_bitmap = 0;
+    } else if (isdigit(current_char)) {
+      current_column_bitmap = (unsigned char) pgm_read_byte(&(DigitFont[((current_char - '0') * 5) + current_char_column]));
     } else {
       current_column_bitmap = (unsigned char) pgm_read_byte(&(LetterFont[((current_char - 'A') * 5) + current_char_column]));
     }
@@ -525,7 +564,10 @@ void displayBulldog() {
       bulldog_pixel = (unsigned char) pgm_read_byte(&(bulldog[row][col]));
       if (bulldog_pixel == '_') {
         if (current_bit == 0x1) {
-          color = PURPLE;
+          if(my_game->year == 1) color = YELLOW;
+          else if(my_game->year == 2) color = ORANGE;
+          else if(my_game->year == 3) color = PINK;
+          else if(my_game->year == 4) color = DARK_PURPLE;
         } else {
           color = 0;
         }
@@ -658,7 +700,7 @@ void clearScores() {
 }
 
 void increaseScores() {
-  my_game->scores++;
+  my_game->scores += POINTS_PER_OBSTACLE;
   clearScores();
   displayScores();
 
@@ -837,31 +879,31 @@ void displayLoseScreen() {
 
 
 void displayCongrats() {
-  displayConfetti();
+  // displayConfetti();
   displayLineOfText(new_word, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT - 2, 1, true);
   displayLineOfText(grad, STATIC_INDEX, STATIC_CYCLE, 2, 4, true);
 
 }
 
-void displayConfetti() {
-  // Draw confetti decal.
-  unsigned char pixel;
-  for (int col = 0; col < BIG_SPRITE_WIDTH; col++) {
-    for (int row = 0; row < BIG_SPRITE_HEIGHT; row++) {
-      pixel = (unsigned char) pgm_read_byte(&(grad_decal[row][col]));
-      if (pixel == '_') {
-        color = 0;
-      } else if (pixel == 'P') {
-        color = PURPLE;
-      } else if (pixel == 'B') {
-        color = LIGHT_BLUE;
-      } else if (pixel == 'W') {
-        color = WHITE;
-      }
-      matrix.drawPixel((matrix.height() / 2) + (BIG_SPRITE_HEIGHT / 2) - row, ((matrix.width() / 2) - (BIG_SPRITE_WIDTH / 2))  + 1 + col, color);
-    }
-  }
-}
+//void displayConfetti() {
+//  // Draw confetti decal.
+//  unsigned char pixel;
+//  for (int col = 0; col < BIG_SPRITE_WIDTH; col++) {
+//    for (int row = 0; row < BIG_SPRITE_HEIGHT; row++) {
+//      pixel = (unsigned char) pgm_read_byte(&(grad_decal[row][col]));
+//      if (pixel == '_') {
+//        color = 0;
+//      } else if (pixel == 'P') {
+//        color = PURPLE;
+//      } else if (pixel == 'B') {
+//        color = LIGHT_BLUE;
+//      } else if (pixel == 'W') {
+//        color = WHITE;
+//      }
+//      matrix.drawPixel((matrix.height() / 2) + (BIG_SPRITE_HEIGHT / 2) - row, ((matrix.width() / 2) - (BIG_SPRITE_WIDTH / 2))  + 1 + col, color);
+//    }
+//  }
+//}
 
 //        // debugging
 //        color = LIGHT_BLUE;

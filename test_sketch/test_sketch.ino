@@ -1,30 +1,23 @@
 
-const char instruction[] = 
-"______PRESS_BUTTON_TO_START______";
-const char welcome[] = 
-"_WELCOME_TO_BULLDOG_DASH______";
-const char obstacles[] =
-  "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
+const char freshman[] PROGMEM  = "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
+const char sophomore[] PROGMEM = "______PAPER_____PAPER____SOPHOMORE-SLUMP____PAPER___";
+const char junior[] PROGMEM    = "______CPSC-323_____INTERNSHIP____SPRING-FLING____FINALS___";
+const char senior[] PROGMEM    = "______INTERVIEWS_____FEB-CLUB____EXISTENTIAL-DREAD____THESIS___";
+const char * obstacles[] = {freshman, sophomore, junior, senior};
+char MAX_OBSTACLE_INDEX[4];
 
-int MAX_OBSTACLE_INDEX;
-char MAX_INST_INDEX;
-char MAX_WELCOME_INDEX;
 
 void setup() {
   
   // For Serial Monitor.
   Serial.begin(9600);
 
-  MAX_OBSTACLE_INDEX = strlen(obstacles) - 6;
-  MAX_INST_INDEX = strlen(instruction) - 6; 
-  MAX_WELCOME_INDEX = strlen(welcome) - 6; 
- 
-  Serial.println(MAX_OBSTACLE_INDEX);
-  Serial.println(int(MAX_INST_INDEX));
-  Serial.println(int(MAX_WELCOME_INDEX));
-  Serial.flush();
-  Serial.println("END");
+  for(int i = 0; i < 4; i++)
+    MAX_OBSTACLE_INDEX[i] = strlen_P(obstacles[i]) - 6;
 
+  for(int i = 0; i < 4; i++)
+    Serial.println(int(MAX_OBSTACLE_INDEX[i]));
+ 
 }
 
 void loop() {
