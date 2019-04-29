@@ -196,24 +196,8 @@ const char dropout[] PROGMEM = "_FAIL__";
 const char new_word[] PROGMEM = "_NEW___";
 const char grad[] PROGMEM = "GRAD___";
 const char welcome[] PROGMEM = "BOOLA__";
-//char welcome_index = 0; // less than 255
-//char welcome_cycle = 0; // less than 255
-// currently not being reset
-//const char welcome[] PROGMEM = "WELCOME_TO_BULLDOG_DASH______";
-//const char welcome[] PROGMEM = "YALE__";
-
-//const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
-//char inst_index; // less than 255
-//char inst_cycle; // less than 255
-//// tested with strlen in another sketch but idk what the - 6 is for
-//#define MAX_INST_INDEX (27)
-
-//const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
-//char inst_index; // less than 255
-//char inst_cycle; // less than 255
 
 unsigned long previous_millis;
-unsigned long current_millis;
 unsigned long delay_millis = START_MILLIS;
 
 gameState* my_game;
@@ -228,35 +212,12 @@ bool buttonPushed = false;
 unsigned char newState, prevState;
 unsigned long lastSwitchTime; 
 
-/* This function places the current value of the heap and stack pointers in the
-   variables. You can call it from any place in your code and save the data for
-   outputting or displaying later. This allows you to check at different parts of
-   your program flow.
-   The stack pointer starts at the top of RAM and grows downwards. The heap pointer
-   starts just above the static variables etc. and grows upwards. SP should always
-   be larger than HP or you'll be in big trouble! The smaller the gap, the more
-   careful you need to be. Julian Gall 6-Feb-2009.
-*/
-//int * heapptr, * stackptr;
-//void check_mem() {
-//  stackptr = (int *)malloc(4);          // use stackptr temporarily
-//  heapptr = stackptr;                     // save value of heap pointer
-//  free(stackptr);      // free up the memory again (sets stackptr to 0)
-//  stackptr =  (int *)(SP);           // save value of stack pointer
-//
-//  Serial.print(F("SP: ")); Serial.print((unsigned int) stackptr); Serial.print(F(" > HP: "));
-//  Serial.println((unsigned int) heapptr);
-//}
 
 void setup() {
-
-  // For Serial Monitor.
-  //Serial.begin(9600);
 
   // For button.
   PORTB |= (1 << PB7); // passive pull-up
   pinMode(BUTTON_PIN, INPUT); 
-
    // Initial state of button.
   newState = digitalRead(BUTTON_PIN); //PINB & (1 << PB7);
   // For debouncing.
@@ -265,16 +226,11 @@ void setup() {
   // For LED Matrix.
   matrix.begin();
 
-  //check_mem();
-
   // Initialize a new game.
   my_game = (gameState*) malloc(sizeof(gameState));
   restartGame();
 
-//  for(int i = 0; i < 2; i++)
-//    MAX_OBSTACLE_INDEX[i] = strlen_P(obstacles[i]) - 6;
   MAX_OBSTACLE_INDEX = strlen_P(freshman) - 6;
-
   previous_millis = millis();
 
   matrix.fillScreen(0); // Clear the LED board.
@@ -302,8 +258,8 @@ void loop() {
   unsigned long current_millis = millis();
   
   prevState = newState;
-  newState = digitalRead(BUTTON_PIN); //PINB & (1 << PB7);
-  // watch out for holding down?
+  newState = digitalRead(BUTTON_PIN); 
+  
   if ((current_millis - DEBOUNCE*2) > lastSwitchTime && newState == BUTTON_DOWN){
     buttonPushed = true;// !buttonState;
     lastSwitchTime = current_millis;
@@ -323,15 +279,6 @@ void loop() {
 
         delay_millis = GAME_MILLIS;
       }
-//      else{
-//        //matrix.fillScreen(0);
-//        displayCongrats();
-//      }
-//      else {
-//        displayStartMessage();
-//        updateInstCycle();
-//        //  used to have welcome message scroll too
-//      }
     }
  
     else{
@@ -448,10 +395,9 @@ void loop() {
       if (obstacle_cycle >= CHAR_WIDTH + 1) {
         obstacle_cycle = 0;
         obstacle_index++;
-        // For now, restart the game when out of characters.
+        
         if (obstacle_index >= MAX_OBSTACLE_INDEX) { //my_game->year - 1
           obstacle_index = 0;
-//          my_game->lives = 4;
           my_game->time_step = -1;
           my_game->year++;
 
@@ -487,10 +433,6 @@ unsigned char getCharOfColumn(int column) {
   
   return (unsigned char) pgm_read_byte(&(obstacle[obstacle_index + (int) ((column + obstacle_cycle) / 6)]));
 }
-
-//unsigned char getCharOfColumn(int column) {
-//  return (unsigned char) pgm_read_byte(&(obstacles[my_game->year -1][obstacle_index + (int) ((column + obstacle_cycle) / 6)]));
-//}
 
 unsigned char getCharColumnOfColumn(int column) {
   return (column + obstacle_cycle) % 6;
@@ -757,31 +699,11 @@ void clearYear() {
   }
 }
 
-//void updateInstCycle(){
-//  inst_cycle++;
-//  if (inst_cycle >= CHAR_WIDTH + 1) {
-//    inst_cycle = 0;
-//    inst_index++;
-//    // keep looping
-//    if (inst_index >= MAX_INST_INDEX) {
-//      inst_index = 0;
-//    }
-//  }
-//}
-
-// display start screen
-//void displayStartMessage() {
-//  color = BLUE;
-//  displayLineOfText(instruction, inst_index, inst_cycle, 0, 0);
-//}
-
 void displayStartScreen() {
   displayBigBulldog();
   color = BLUE;
   displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 0, false);
   displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, 0, 3, false);
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
-//  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
 }
 
 // message must be string in PROGMEM
@@ -803,8 +725,7 @@ void displayLineOfText(const char *message, int index, int cycle, int row_offset
   for (int col = 0; col < 32; col++) {
     current_char =  getCharOfColumnGeneral(col, message, index, cycle);
     current_char_column = getCharColumnOfColumnGeneral(col, cycle);
-    // currently doesn't use the - between words (bc that's for the bulldog to know 
-    // if it's jumping over air, not necessary for general display
+    
     if (current_char == '_' || current_char_column == 5) {
       current_column_bitmap = 0;
       // If reached the end of a letter in rainbow mode, change color.
@@ -864,20 +785,45 @@ void endGame(bool win) {
     displayWinScreen();
   else
     displayLoseScreen();
-  // use millis? this is blocking so it wont work if we want to scroll/animate
-  delay(3000);
+  delay(3000); // blocking
   
   if(win){
     matrix.fillScreen(0);
     displayCongrats();
-    for (int i = 0; i < 10; i++) {
-      displayBlueConfetti(false);
-      displayWhiteConfetti(false);
-      delay(500);
-      displayBlueConfetti(true);
-      delay(500);
-      displayWhiteConfetti(true);
-      delay(500); 
+    
+    unsigned long current_millis;
+    unsigned long prev_millis = millis();
+    int elapsed;
+    char mode = 0;
+    while(true){
+      elapsed = millis() - prev_millis;
+      
+      if(elapsed < 500 && mode == 0) {
+        displayBlueConfetti(false);
+        displayWhiteConfetti(false);
+        mode = 1;
+      }
+      else if(elapsed >= 500 && elapsed < 1000 && mode == 1) {
+        displayBlueConfetti(true);
+        mode = 2;
+      }
+      else if(elapsed >= 1000 && elapsed < 1500 && mode == 2) {
+        displayWhiteConfetti(true);
+        mode = 3;
+      }
+      else if(elapsed >= 1500){
+        prev_millis = millis(); // start a new loop
+        mode = 0;
+      }
+   
+      // check for button
+      current_millis = millis();
+      prevState = newState;
+      newState = digitalRead(BUTTON_PIN); 
+      if (prevState != newState && newState == BUTTON_DOWN && (current_millis - DEBOUNCE) > lastSwitchTime) {  
+        lastSwitchTime = current_millis;
+        break;
+      }
     }
   }
   restartGame();
