@@ -16,7 +16,7 @@
 #define BUTTON_PIN 13
 
 // Timings for scrolling text
-#define GAME_MILLIS 150
+#define GAME_MILLIS 120
 #define START_MILLIS 75
 
 // Sprites include bulldog and heart.
@@ -113,21 +113,6 @@ const char big_bulldog[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
   "__WW___WW_____"
 };
 
-//// 165 bytes
-//const char grad_decal[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
-//  "P______P_____P",
-//  "_B_____P____B_",
-//  "__B____B___B__",
-//  "___BP___PPB___",
-//  "___PBBPBPBP__W",
-//  "PW__BPPBBBP___",
-//  "___WBWBPPP___",
-//  "___BWPPB_PB___",
-//  "__B________B__",
-//  "_B____B_____B_",
-//  "P_____B______P"
-//};
-
 // 130 bytes
 const unsigned char LetterFont[] PROGMEM = {
   0x7E, 0x11, 0x11, 0x11, 0x7E,// A
@@ -173,13 +158,11 @@ const unsigned char DigitFont[] PROGMEM = {
 };
 
 
-// 210 bytes
-const char freshman[] PROGMEM  = "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW______";
+// 210 bytes + more
+const char freshman[] PROGMEM  = "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW________";
 const char sophomore[] PROGMEM = "______PAPER_____PAPER____SLUMP____PAPER______";
 const char junior[] PROGMEM    = "______CPSC323_____INTERNSHIP____SPRING-FLING____FINALS______";
-const char senior[] PROGMEM    = "______INTERVIEWS_____FEBCLUB____EXISTENTIAL-DREAD____THESIS______";
-// const char * obstacles[] = {freshman, sophomore, junior, senior};
-//const char * obstacles[] = {freshman, sophomore}; //works with freshman but not both
+const char senior[] PROGMEM    = "______INTERVIEWS_____SOCIETY____EXISTENTIAL-DREAD_____FEBCLUB____THESIS______DEAD-WEEK______";
 
 // reuse these since one set of obstacles at a time
 int obstacle_index; // Current character at the bottom left corner.
@@ -260,7 +243,7 @@ void loop() {
   prevState = newState;
   newState = digitalRead(BUTTON_PIN); 
   
-  if ((current_millis - DEBOUNCE*2) > lastSwitchTime && newState == BUTTON_DOWN){
+  if ((current_millis - DEBOUNCE*2) > lastSwitchTime && prevState != newState && newState == BUTTON_DOWN){
     buttonPushed = true;// !buttonState;
     lastSwitchTime = current_millis;
   }
@@ -401,7 +384,7 @@ void loop() {
           my_game->time_step = -1;
           my_game->year++;
 
-          delay_millis -= 30;
+          delay_millis -= 20;
 
           if(my_game->year == 2){
             MAX_OBSTACLE_INDEX = strlen_P(sophomore) - 6;
