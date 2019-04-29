@@ -41,12 +41,14 @@ uint16_t color;
 #define WHITE (matrix.Color333(7, 7, 7))
 #define RED (matrix.Color333(7, 0, 0))
 #define GREEN (matrix.Color333(3, 7, 0))
-#define LIGHT_GREEN (matrix.Color333(2, 7, 2))
+#define TEAL (matrix.Color333(2, 7, 2))
 #define BLUE (matrix.Color333(0, 0, 7))
 #define LIGHT_BLUE (matrix.Color333(2, 2, 7))
 #define YELLOW (matrix.Color333(7, 3, 0))
+#define ORANGE (matrix.Color333(7, 1, 0))
 #define PURPLE (matrix.Color333(7, 0, 7))
-#define YALE_PURPLE (matrix.Color333(3, 0, 7))
+#define PINK (matrix.Color333(7, 0, 3    ))
+#define DARK_PURPLE (matrix.Color333(3, 0, 7))
 
 #define BULLDOG_LEFT_OFFSET (3)
 #define BULLDOG_FRONT_LEG_OFFSET (4)
@@ -269,8 +271,9 @@ void setup() {
 
   matrix.fillScreen(0); // Clear the LED board.
   displayStartScreen();
+  
 
-//  color = YALE_PURPLE;
+//  color = DARK_PURPLE;
 //  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 4);
 //  displayStartMessage();
  
@@ -770,6 +773,22 @@ void displayLineOfText(const char *message, int index, int cycle, int row_offset
     // if it's jumping over air, not necessary for general display
     if (current_char == '_' || current_char_column == 5) {
       current_column_bitmap = 0;
+      // If reached the end of a letter in rainbow mode, change color.
+      if (rainbow && current_char_column == 5 && current_char != '_') {
+        if (color == TEAL) {
+          color = GREEN;
+        } else if (color == GREEN) {
+          color = YELLOW;
+        } else if (color == YELLOW) {
+          color = ORANGE;
+        } else if (color == ORANGE) {
+          color = RED;
+        } else if (color == RED) {
+          color = PINK;
+        } else if (color == PINK) {
+          color = PURPLE;
+        }
+      }
     } else {
       current_column_bitmap = (unsigned char) pgm_read_byte(&(LetterFont[((current_char - 'A') * 5) + current_char_column]));
     }
@@ -817,7 +836,15 @@ void endGame(bool win) {
   if(win){
     matrix.fillScreen(0);
     displayCongrats();
-    delay(5000);
+    for (int i = 0; i < 10; i++) {
+      displayBlueConfetti(false);
+      displayWhiteConfetti(false);
+      delay(500);
+      displayBlueConfetti(true);
+      delay(500);
+      displayWhiteConfetti(true);
+      delay(500); 
+    }
   }
   restartGame();
   matrix.fillScreen(0);
@@ -826,7 +853,7 @@ void endGame(bool win) {
 }
 
 void displayWinScreen() {
-   color = LIGHT_GREEN;
+   color = GREEN;
    displayLineOfText(congrats, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), -1, false);
 }
 
@@ -837,30 +864,123 @@ void displayLoseScreen() {
 
 
 void displayCongrats() {
-  displayConfetti();
-  displayLineOfText(new_word, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT - 2, 1, true);
-  displayLineOfText(grad, STATIC_INDEX, STATIC_CYCLE, 2, 4, true);
-
+  displayGradBulldog();
+  color = TEAL;
+  displayLineOfText(new_word, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 1, true);
+  displayLineOfText(grad, STATIC_INDEX, STATIC_CYCLE, 0, 4, true);
 }
 
-void displayConfetti() {
-  // Draw confetti decal.
+void displayGradBulldog() {
+  int row;
+  int col;
+  
+  // Draw bulldog.
   unsigned char pixel;
-  for (int col = 0; col < BIG_SPRITE_WIDTH; col++) {
-    for (int row = 0; row < BIG_SPRITE_HEIGHT; row++) {
-      pixel = (unsigned char) pgm_read_byte(&(grad_decal[row][col]));
+  for (col = 0; col < SPRITE_WIDTH; col++) {
+    for (row = 0; row < SPRITE_HEIGHT; row++) {
+      pixel = (unsigned char) pgm_read_byte(&(bulldog[row][col]));
       if (pixel == '_') {
         color = 0;
-      } else if (pixel == 'P') {
-        color = PURPLE;
       } else if (pixel == 'B') {
-        color = LIGHT_BLUE;
+        color = BLUE;
       } else if (pixel == 'W') {
         color = WHITE;
       }
-      matrix.drawPixel((matrix.height() / 2) + (BIG_SPRITE_HEIGHT / 2) - row, ((matrix.width() / 2) - (BIG_SPRITE_WIDTH / 2))  + 1 + col, color);
+      drawCenteredSpritePixel(row, col, SPRITE_HEIGHT, SPRITE_WIDTH);
     }
   }
+
+  // Draw graduation cap.
+  color = BLUE;
+
+  // Top row.
+  row = 0;
+  for (col = 2; col < 7; col++) {
+    drawCenteredSpritePixel(row, col, SPRITE_HEIGHT, SPRITE_WIDTH);
+  }
+
+  // Bottom row.
+  row = 1;
+  for (col = 3; col < 6; col++) {
+    drawCenteredSpritePixel(row, col, SPRITE_HEIGHT, SPRITE_WIDTH);
+  }
+  
+  // Tassel.
+  color = YELLOW;
+  drawCenteredSpritePixel(1, 6, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel(2, 6, SPRITE_HEIGHT, SPRITE_WIDTH);
+}
+
+void displayBlueConfetti(bool show_confetti) {
+  int row;
+  int col;
+
+  color = show_confetti ? BLUE : 0;  
+  
+  // Horizontal line.
+  row = SPRITE_HEIGHT / 2;
+  for (col = 0; col < 3; col++) {
+    drawCenteredSpritePixel(row, SPRITE_WIDTH + 1 + col, SPRITE_HEIGHT, SPRITE_WIDTH); // Right side.
+    drawCenteredSpritePixel(row, -2 - col, SPRITE_HEIGHT, SPRITE_WIDTH); // Left side.
+  }
+  
+  // Vertical line.
+  col = SPRITE_WIDTH / 2;
+  for (row = 0; row < 3; row++) {
+    drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top side.
+    drawCenteredSpritePixel(-2 - row, col, SPRITE_HEIGHT, SPRITE_WIDTH); // Bottom side.
+  }
+
+  // Diagonal lines, top left to bottom right.
+  for (row = 0; row < 2; row++) {
+    col = row;
+    drawCenteredSpritePixel(-2 - row, -2 - col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top left.
+    drawCenteredSpritePixel(-2 - row, SPRITE_WIDTH + 1 + col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top right.
+    drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, -2 - col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top left.
+    drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, SPRITE_WIDTH + 1 + col, SPRITE_HEIGHT, SPRITE_WIDTH); // Bottom right.
+  }
+}
+
+void displayWhiteConfetti(bool show_confetti) {
+  int row;
+  int col;
+
+  color = show_confetti ? WHITE : 0;
+  
+  // Horizontal line.
+  row = SPRITE_HEIGHT / 2;
+  col = 3;
+  drawCenteredSpritePixel(SPRITE_HEIGHT / 2, SPRITE_WIDTH + 4, SPRITE_HEIGHT, SPRITE_WIDTH); // Right side.
+  drawCenteredSpritePixel(SPRITE_HEIGHT / 2, -5, SPRITE_HEIGHT, SPRITE_WIDTH); // Left side.
+  
+  // Vertical line.
+  col = SPRITE_WIDTH / 2;
+  row = 3;
+  drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top side.
+  drawCenteredSpritePixel(-2 - row, col, SPRITE_HEIGHT, SPRITE_WIDTH); // Bottom side.
+
+  // Diagonal lines, top left to bottom right.
+  col = 2;
+  row = 2;
+  drawCenteredSpritePixel(-2 - row, -2 - col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top left.
+  drawCenteredSpritePixel(-2 - row, SPRITE_WIDTH + 1 + col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top right.
+  drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, -2 - col, SPRITE_HEIGHT, SPRITE_WIDTH); // Top left.
+  drawCenteredSpritePixel(SPRITE_HEIGHT + 1 + row, SPRITE_WIDTH + 1 + col, SPRITE_HEIGHT, SPRITE_WIDTH); // Bottom right.
+
+  // In between white pixels.
+  drawCenteredSpritePixel(-3,  0, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel(-3,  6, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 0, -3, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 0,  9, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 6, -3, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 6,  9, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 9,  0, SPRITE_HEIGHT, SPRITE_WIDTH);
+  drawCenteredSpritePixel( 9,  6, SPRITE_HEIGHT, SPRITE_WIDTH);
+}
+
+// Draw a pixel of a sprite given the row and column relative to that pixel.
+void drawCenteredSpritePixel(int row, int col, int sprite_height, int sprite_width) {
+  matrix.drawPixel((matrix.height() / 2) + (sprite_height / 2) - 1 - row, ((matrix.width() / 2) - (sprite_width / 2)) - 1 + col, color);
 }
 
 //        // debugging
