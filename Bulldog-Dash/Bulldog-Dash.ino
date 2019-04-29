@@ -41,6 +41,7 @@ uint16_t color;
 #define WHITE (matrix.Color333(7, 7, 7))
 #define RED (matrix.Color333(7, 0, 0))
 #define GREEN (matrix.Color333(3, 7, 0))
+#define LIGHT_GREEN (matrix.Color333(2, 7, 2))
 #define BLUE (matrix.Color333(0, 0, 7))
 #define LIGHT_BLUE (matrix.Color333(2, 2, 7))
 #define YELLOW (matrix.Color333(7, 3, 0))
@@ -69,6 +70,7 @@ typedef struct gameState {
 } gameState;
 
 // +1 because extra space needed for string null-terminator.
+// 56 bytes
 const char bulldog[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
   "__W___W",
   "___WWW_",
@@ -79,6 +81,7 @@ const char bulldog[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
   "__W_W__"
 };
 
+// 56 bytes
 const char heart[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
   "_RR_RR_",
   "RRRRRRR",
@@ -92,6 +95,7 @@ const char heart[SPRITE_HEIGHT][SPRITE_WIDTH + 1] PROGMEM = {
 #define BIG_SPRITE_HEIGHT (SPRITE_HEIGHT+4)
 #define BIG_SPRITE_WIDTH  (SPRITE_WIDTH*2 + 1)
 
+// 165 bytes
 const char big_bulldog[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
   "______WW____WW",
   "_______WWWWWW_",
@@ -106,6 +110,22 @@ const char big_bulldog[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
   "__WW___WW_____"
 };
 
+// 165 bytes
+const char grad_decal[BIG_SPRITE_HEIGHT][BIG_SPRITE_WIDTH] PROGMEM = {
+  "P______P_____P",
+  "_B_____P____B_",
+  "__B____B___B__",
+  "___BP___PPB___",
+  "___PBBPBPBP__W",
+  "PW__BPPBBBP___",
+  "___WBWBPPP___",
+  "___BWPPB_PB___",
+  "__B________B__",
+  "_B____B_____B_",
+  "P_____B______P"
+};
+
+// 130 bytes
 const unsigned char LetterFont[] PROGMEM = {
   0x7E, 0x11, 0x11, 0x11, 0x7E,// A
   0x7F, 0x49, 0x49, 0x49, 0x36,// B
@@ -135,6 +155,7 @@ const unsigned char LetterFont[] PROGMEM = {
   0x61, 0x51, 0x49, 0x45, 0x43,// Z
 };
 
+// 50 bytes
 const unsigned char DigitFont[] PROGMEM = {
   0x3E, 0x51, 0x49, 0x45, 0x3E,// 0
   0x00, 0x42, 0x7F, 0x40, 0x00,// 1
@@ -150,6 +171,7 @@ const unsigned char DigitFont[] PROGMEM = {
 
 //const char obstacles[] PROGMEM =
 //  "______HELLO-WORLD______";
+// 55 bytes
 const char obstacles[] PROGMEM =
   "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
 int obstacle_index; // Current character at the bottom left corner.
@@ -160,6 +182,11 @@ char MAX_OBSTACLE_INDEX;
 #define STATIC_INDEX 0
 #define STATIC_CYCLE 0
 
+// 7 bytes each = 35 total
+const char congrats[] PROGMEM = "_PASS__";
+const char dropout[] PROGMEM = "_FAIL__";
+const char new_word[] PROGMEM = "_NEW___";
+const char grad[] PROGMEM = "GRAD___";
 const char welcome[] PROGMEM = "BOOLA__";
 //char welcome_index = 0; // less than 255
 //char welcome_cycle = 0; // less than 255
@@ -176,9 +203,6 @@ const char welcome[] PROGMEM = "BOOLA__";
 //const char instruction[] PROGMEM = "______PRESS_BUTTON_TO_START_____";
 //char inst_index; // less than 255
 //char inst_cycle; // less than 255
-
-const char congrats[] PROGMEM = "_PASS__";
-const char dropout[] PROGMEM = "_FAIL__";
 
 unsigned long previous_millis;
 unsigned long current_millis;
@@ -244,7 +268,6 @@ void setup() {
   previous_millis = millis();
 
   matrix.fillScreen(0); // Clear the LED board.
-  
   displayStartScreen();
 
 //  color = YALE_PURPLE;
@@ -295,6 +318,10 @@ void loop() {
 
         delay_millis = GAME_MILLIS;
       }
+//      else{
+//        //matrix.fillScreen(0);
+//        displayCongrats();
+//      }
 //      else {
 //        displayStartMessage();
 //        updateInstCycle();
@@ -395,7 +422,7 @@ void loop() {
       else {
   
         // If the bulldog is on an obstacle and reaches the end of that obstacle, it moves down to ground.
-        if (my_game->bulldog_platform == OBSTACLE_TOP && !both_legs_on_char) {
+        if (my_game->bulldog_platform == OBSTACLE_TOP && !one_leg_on_char) {
           my_game->bulldog_jumping = true;
           my_game->bulldog_jumping_direction = DOWN;
           my_game->bulldog_platform = GROUND;
@@ -498,7 +525,7 @@ void displayBulldog() {
       bulldog_pixel = (unsigned char) pgm_read_byte(&(bulldog[row][col]));
       if (bulldog_pixel == '_') {
         if (current_bit == 0x1) {
-          color = YELLOW;
+          color = PURPLE;
         } else {
           color = 0;
         }
@@ -659,7 +686,7 @@ void displayYear() {
         current_bit = current_column_bitmap & 0x1;
         current_column_bitmap >>= 1;
         if (current_bit == 0x1) {
-          color = YELLOW;
+          color = PURPLE;
         } else {
           color = 0;
         }
@@ -714,8 +741,8 @@ void clearYear() {
 void displayStartScreen() {
   displayBigBulldog();
   color = BLUE;
-  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 0);
-  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, 0, 3);
+  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT, 0, false);
+  displayLineOfText(welcome, STATIC_INDEX, STATIC_CYCLE, 0, 3, false);
 //  displayLineOfText(welcome, welcome_index, welcome_cycle, matrix.height() - CHAR_HEIGHT, 0);
 //  displayLineOfText(welcome, welcome_index, welcome_cycle, 0, 3);
 }
@@ -730,7 +757,7 @@ unsigned char getCharColumnOfColumnGeneral(int column, int cycle) {
 }
 
 // message must be string in PROGMEM with only alphabetic characters
-void displayLineOfText(const char *message, int index, int cycle, int row_offset, int col_offset) {
+void displayLineOfText(const char *message, int index, int cycle, int row_offset, int col_offset, bool rainbow) {
   unsigned char current_char;
   int current_char_column;
   unsigned char current_column_bitmap;
@@ -784,8 +811,14 @@ void endGame(bool win) {
     displayWinScreen();
   else
     displayLoseScreen();
-  // use millis? this is blocking
+  // use millis? this is blocking so it wont work if we want to scroll/animate
   delay(3000);
+  
+  if(win){
+    matrix.fillScreen(0);
+    displayCongrats();
+    delay(5000);
+  }
   restartGame();
   matrix.fillScreen(0);
   displayStartScreen();
@@ -793,13 +826,41 @@ void endGame(bool win) {
 }
 
 void displayWinScreen() {
-  color = LIGHT_BLUE;
-  displayLineOfText(congrats, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), 0);
+   color = LIGHT_GREEN;
+   displayLineOfText(congrats, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), -1, false);
 }
 
 void displayLoseScreen() {
   color = RED;
-  displayLineOfText(dropout, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), 0);
+  displayLineOfText(dropout, STATIC_INDEX, STATIC_CYCLE, (matrix.height() / 2 - CHAR_HEIGHT / 2), -1, false);
+}
+
+
+void displayCongrats() {
+  displayConfetti();
+  displayLineOfText(new_word, STATIC_INDEX, STATIC_CYCLE, matrix.height() - CHAR_HEIGHT - 2, 1, true);
+  displayLineOfText(grad, STATIC_INDEX, STATIC_CYCLE, 2, 4, true);
+
+}
+
+void displayConfetti() {
+  // Draw confetti decal.
+  unsigned char pixel;
+  for (int col = 0; col < BIG_SPRITE_WIDTH; col++) {
+    for (int row = 0; row < BIG_SPRITE_HEIGHT; row++) {
+      pixel = (unsigned char) pgm_read_byte(&(grad_decal[row][col]));
+      if (pixel == '_') {
+        color = 0;
+      } else if (pixel == 'P') {
+        color = PURPLE;
+      } else if (pixel == 'B') {
+        color = LIGHT_BLUE;
+      } else if (pixel == 'W') {
+        color = WHITE;
+      }
+      matrix.drawPixel((matrix.height() / 2) + (BIG_SPRITE_HEIGHT / 2) - row, ((matrix.width() / 2) - (BIG_SPRITE_WIDTH / 2))  + 1 + col, color);
+    }
+  }
 }
 
 //        // debugging

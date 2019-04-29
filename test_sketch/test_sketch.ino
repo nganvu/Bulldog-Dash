@@ -4,7 +4,7 @@ const char instruction[] =
 const char welcome[] = 
 "_WELCOME_TO_BULLDOG_DASH______";
 const char obstacles[] =
-"______HELLO_WORLD______";
+  "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW___";
 
 int MAX_OBSTACLE_INDEX;
 char MAX_INST_INDEX;
