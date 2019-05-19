@@ -159,10 +159,10 @@ const unsigned char DigitFont[] PROGMEM = {
 
 
 // 210 bytes + more
-const char freshman[] PROGMEM  = "______CAMP-YALE_____MIDTERMS____IMPOSTOR-SYNDROME____SCREW________";
-const char sophomore[] PROGMEM = "______PAPER_____PAPER____SLUMP____PAPER______";
-const char junior[] PROGMEM    = "______CPSC323_____INTERNSHIP____SPRING-FLING____FINALS______";
-const char senior[] PROGMEM    = "______INTERVIEWS_____SOCIETY____EXISTENTIAL-DREAD_____FEBCLUB____THESIS______DEAD-WEEK______";
+const char freshman[] PROGMEM  = "______2015______CAMP-YALE_____FRISBEE____IMPOSTOR-SYNDROME_______";
+const char sophomore[] PROGMEM = "______MAJOR-DILEMMA_____CS223____SLUMP____ENGL120________";
+const char junior[] PROGMEM    = "______CS323_____INTERNSHIP____ULAING_____FINALS______";
+const char senior[] PROGMEM    = "______INTERVIEWS_____SOCIETY____EXISTENTIAL-CRISIS______THESIS______SENIOR-WEEK_____2019______";
 
 // reuse these since one set of obstacles at a time
 int obstacle_index; // Current character at the bottom left corner.
